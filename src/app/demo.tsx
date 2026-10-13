@@ -20,6 +20,9 @@ import {
 
 const POLL_INTERVAL_MS = 5000;
 
+const POPUP_WIDTH = 480;
+const POPUP_HEIGHT = 760;
+
 // The team may already have other payouts. Only the ones this demo created count as progress.
 const PAYOUT_TAG = "baton-demo";
 
@@ -104,7 +107,13 @@ export function Demo() {
 
         if (sessionMode === "popup") {
             // Opened before the API call: browsers only allow popups right after a click.
-            const popup = window.open("", "talentir", "popup,width=480,height=760");
+            const left = window.screenX + (window.outerWidth - POPUP_WIDTH) / 2;
+            const top = window.screenY + (window.outerHeight - POPUP_HEIGHT) / 2;
+            const popup = window.open(
+                "",
+                "talentir",
+                `popup,width=${POPUP_WIDTH},height=${POPUP_HEIGHT},left=${left},top=${top}`,
+            );
             if (popup === null) {
                 throw new Error("The browser blocked the popup. Allow popups for this site.");
             }
