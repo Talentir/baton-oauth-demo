@@ -2,7 +2,7 @@
 
 A minimal demo of the [Talentir](https://www.talentir.com) OAuth flow for platforms. Your app holds the baton for API calls and hands it to the user for KYB and approval.
 
-Live: https://baton-oauth-demo.vercel.app
+Live: https://baton.talentir.com
 
 ## The flow
 
