@@ -14,7 +14,7 @@ Live: https://baton.talentir.com
 | --- | --- | --- |
 | KYB completed | The user, in a hosted session | `POST /api/v2/sessions` with `type: "kyb"`, then open the returned `url` |
 | First deposit | Sandbox: your app. Production: the customer, by bank transfer | Sandbox: `POST /api/v2/team/sandbox-deposit`. Production: the deposit instructions from `GET /api/v2/team/accounts` |
-| Allowance set (optional) | The team owner, in a hosted session | `POST /api/v2/sessions` with `type: "allowance"`. Needed only for automatic approval with `payouts:approve`. Read back from `allowance` in `GET /api/v2/team/accounts` |
+| Allowance set | The team owner, in a hosted session | `POST /api/v2/sessions` with `type: "allowance"`. Every approval needs it. Read back from `allowance` in `GET /api/v2/team/accounts` |
 | First payout created | Your app, no user needed | `POST /api/v2/payouts` |
 | Payout approved | The user, in a hosted session | `POST /api/v2/sessions` with `type: "payout_approval"`, then open the returned `url` |
 

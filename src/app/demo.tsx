@@ -358,11 +358,11 @@ export function Demo() {
                             done={allowanceAccounts.length > 0}
                             endpoint='POST /api/v2/sessions { "type": "allowance" } · GET /api/v2/team/accounts'
                             kind="allowance"
-                            title="Allowance set (optional)"
+                            title="Allowance set"
                         >
                             <p>
-                                The team owner sets a daily spending limit for automatic approval. You need it only if
-                                Talentir gave your client the restricted <code>payouts:approve</code> scope.
+                                The team owner sets a daily spending limit. Every approval needs it, whatever scopes
+                                your client has.
                             </p>
                             {allowanceAccounts.map((account) => (
                                 <p key={account.currency}>
