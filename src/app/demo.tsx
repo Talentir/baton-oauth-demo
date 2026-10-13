@@ -290,7 +290,7 @@ export function Demo() {
                         <Step
                             done={team.data.kybStatus === "verified"}
                             endpoint='POST /api/v2/sessions { "type": "kyb" }'
-                            kind="session"
+                            kind="kyb"
                             title="KYB completed"
                         >
                             <p>
@@ -355,7 +355,7 @@ export function Demo() {
                         <Step
                             done={null}
                             endpoint='POST /api/v2/sessions { "type": "allowance" }'
-                            kind="session"
+                            kind="allowance"
                             title="Allowance set (optional)"
                         >
                             <p>
@@ -411,7 +411,7 @@ export function Demo() {
                         <Step
                             done={payoutList.some((payout) => payout.approvedAt !== null)}
                             endpoint='POST /api/v2/sessions { "type": "payout_approval" }'
-                            kind="session"
+                            kind="payout_approval"
                             title="Payout approved"
                         >
                             <p>Approval releases money, so a team admin confirms it with a passkey on Talentir.</p>
@@ -466,10 +466,14 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
     );
 }
 
+const SESSION_BADGE = "bg-amber-100 text-amber-800";
+
 const STEP_KINDS = {
     api: { label: "API call · no user needed", className: "bg-sky-100 text-sky-800" },
-    session: { label: "Hosted session · user signs in", className: "bg-amber-100 text-amber-800" },
     bank: { label: "Bank transfer · customer pays in", className: "bg-violet-100 text-violet-800" },
+    kyb: { label: "Hosted session · kyb", className: SESSION_BADGE },
+    allowance: { label: "Hosted session · allowance", className: SESSION_BADGE },
+    payout_approval: { label: "Hosted session · payout_approval", className: SESSION_BADGE },
 };
 
 function Step({
