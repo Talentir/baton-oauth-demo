@@ -360,10 +360,7 @@ export function Demo() {
                             kind="allowance"
                             title="Allowance set"
                         >
-                            <p>
-                                The team owner sets a daily spending limit. Every approval needs it, whatever scopes
-                                your client has.
-                            </p>
+                            <p>The team owner sets a daily spending limit.</p>
                             {allowanceAccounts.map((account) => (
                                 <p key={account.currency}>
                                     <code>
