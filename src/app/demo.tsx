@@ -89,6 +89,16 @@ export function Demo() {
     const createSessionUrl = async (request: SessionRequest, redirectUrl: string) =>
         (await api<{ url: string }>("POST", "/sessions", { ...request, redirectUrl })).url;
 
+    const refreshWhenSessionEnds = () => {
+        // public/done.html posts here. Talentir's opener policy cuts the popup off from window.opener.
+        const channel = new BroadcastChannel("talentir-session");
+        channel.onmessage = () => {
+            channel.close();
+            setFrameUrl(null);
+            queryClient.invalidateQueries();
+        };
+    };
+
     const openSession = async (request: SessionRequest) => {
         const doneUrl = `${window.location.origin}/done.html`;
 
@@ -105,11 +115,13 @@ export function Demo() {
                 popup.close();
                 throw error;
             }
+            refreshWhenSessionEnds();
             return;
         }
 
         if (sessionMode === "iframe") {
             setFrameUrl(await createSessionUrl(request, doneUrl));
+            refreshWhenSessionEnds();
             return;
         }
 
@@ -326,13 +338,6 @@ export function Demo() {
                         <iframe
                             allow="publickey-credentials-get *; publickey-credentials-create *"
                             className="flex-1 border-neutral-200 border-t"
-                            // contentDocument is null while the frame shows Talentir. It becomes readable when the
-                            // session redirects back to /done.html on this site.
-                            onLoad={(event) => {
-                                if (event.currentTarget.contentDocument !== null) {
-                                    setFrameUrl(null);
-                                }
-                            }}
                             src={frameUrl}
                             title="Talentir session"
                         />

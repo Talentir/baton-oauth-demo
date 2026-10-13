@@ -7,6 +7,7 @@
     <body style="font-family: system-ui, sans-serif; display: grid; place-items: center; height: 100vh; margin: 0">
         <p>Done. You can close this window.</p>
         <script>
+            new BroadcastChannel("talentir-session").postMessage("done");
             window.close();
         </script>
     </body>
