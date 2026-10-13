@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
+    type Account,
     authorizeUrl,
     callApi,
     type DemoState,
@@ -26,7 +27,7 @@ const POPUP_HEIGHT = 760;
 // The team may already have other payouts. Only the ones this demo created count as progress.
 const PAYOUT_TAG = "baton-demo";
 
-type SessionRequest = { type: "kyb" } | { type: "payout_approval"; payoutIds: string[] };
+type SessionRequest = { type: "kyb" } | { type: "allowance" } | { type: "payout_approval"; payoutIds: string[] };
 
 export function Demo() {
     const queryClient = useQueryClient();
@@ -54,6 +55,12 @@ export function Demo() {
         enabled: client.accessToken !== null,
         refetchInterval: POLL_INTERVAL_MS,
     });
+    const accounts = useQuery({
+        queryKey: ["accounts", environment, client.accessToken],
+        queryFn: () => api<{ data: Account[] }>("GET", "/team/accounts"),
+        enabled: client.accessToken !== null,
+        refetchInterval: POLL_INTERVAL_MS,
+    });
     const payouts = useQuery({
         queryKey: ["payouts", environment, client.accessToken],
         queryFn: () => api<{ data: Payout[] }>("GET", `/payouts?tag=${PAYOUT_TAG}`),
@@ -75,6 +82,11 @@ export function Demo() {
                 ),
             );
         },
+    });
+
+    const deposit = useMutation({
+        mutationFn: () => api<Account>("POST", "/team/sandbox-deposit", { currency: "EUR", amount: "1000.00" }),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["accounts"] }),
     });
 
     const createPayout = useMutation({
@@ -137,8 +149,10 @@ export function Demo() {
         window.location.assign(await createSessionUrl(request, window.location.origin));
     };
     const kybSession = useMutation({ mutationFn: openSession });
+    const allowanceSession = useMutation({ mutationFn: openSession });
     const approvalSession = useMutation({ mutationFn: openSession });
 
+    const fundedAccounts = (accounts.data?.data ?? []).filter((account) => Number(account.balance.total) > 0);
     const payoutList = payouts.data?.data ?? [];
     const latestPayout = payoutList.at(0);
     const createdPayoutIds = payoutList.filter((payout) => payout.status === "created").map((payout) => payout.id);
@@ -152,7 +166,7 @@ export function Demo() {
                     </h1>
                     <p className="mt-1 text-neutral-500 text-sm">
                         A minimal Talentir OAuth demo. Your app holds the baton for API calls and hands it to the user
-                        for KYB and approval.
+                        for KYB, the allowance, and approval.
                     </p>
                 </div>
                 <button
@@ -259,6 +273,52 @@ export function Demo() {
                         </Step>
 
                         <Step
+                            done={fundedAccounts.length > 0}
+                            endpoint={isSandbox ? "POST /api/v2/team/sandbox-deposit" : "GET /api/v2/team/accounts"}
+                            kind={isSandbox ? "api" : "bank"}
+                            title="First deposit"
+                        >
+                            {isSandbox ? (
+                                <p>The sandbox has no bank, so your app adds test money with one API call.</p>
+                            ) : (
+                                <p>The customer sends a bank transfer to the deposit instructions of their account.</p>
+                            )}
+                            {fundedAccounts.map((account) => (
+                                <p key={account.currency}>
+                                    <code>
+                                        {account.currency}: {account.balance.available} available
+                                    </code>
+                                </p>
+                            ))}
+                            {isSandbox && (
+                                <Button disabled={deposit.isPending} onClick={() => deposit.mutate()}>
+                                    Deposit 1,000 EUR
+                                </Button>
+                            )}
+                            <ErrorText error={deposit.error} />
+                        </Step>
+
+                        <Step
+                            done={null}
+                            endpoint='POST /api/v2/sessions { "type": "allowance" }'
+                            kind="session"
+                            title="Allowance set (optional)"
+                        >
+                            <p>
+                                The team owner sets a daily spending limit for automatic approval. You need it only if
+                                Talentir gave your client the restricted <code>payouts:approve</code> scope. The API
+                                does not report the allowance, so this step has no check.
+                            </p>
+                            <Button
+                                disabled={allowanceSession.isPending}
+                                onClick={() => allowanceSession.mutate({ type: "allowance" })}
+                            >
+                                Set allowance
+                            </Button>
+                            <ErrorText error={allowanceSession.error} />
+                        </Step>
+
+                        <Step
                             done={latestPayout !== undefined}
                             endpoint="POST /api/v2/payouts"
                             kind="api"
@@ -314,20 +374,6 @@ export function Demo() {
                             >
                                 Approve {createdPayoutIds.length} {createdPayoutIds.length === 1 ? "payout" : "payouts"}
                             </Button>
-                            {isSandbox && (
-                                <Hint>
-                                    Approval needs money in the wallet. In sandbox, open{" "}
-                                    <a
-                                        className="underline"
-                                        href={`${talentirOrigin}/dashboard/wallet`}
-                                        rel="noopener"
-                                        target="_blank"
-                                    >
-                                        Wallet
-                                    </a>{" "}
-                                    and click Deposit 1,000 EUR.
-                                </Hint>
-                            )}
                             <ErrorText error={approvalSession.error} />
                         </Step>
                     </ol>
@@ -366,6 +412,12 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
     );
 }
 
+const STEP_KINDS = {
+    api: { label: "API call · no user needed", className: "bg-sky-100 text-sky-800" },
+    session: { label: "Hosted session · user signs in", className: "bg-amber-100 text-amber-800" },
+    bank: { label: "Bank transfer · customer pays in", className: "bg-violet-100 text-violet-800" },
+};
+
 function Step({
     done,
     endpoint,
@@ -373,31 +425,25 @@ function Step({
     title,
     children,
 }: {
-    done: boolean;
+    done: boolean | null;
     endpoint: string;
-    kind: "api" | "session";
+    kind: keyof typeof STEP_KINDS;
     title: string;
     children: React.ReactNode;
 }) {
     return (
         <li className="flex gap-4 py-5 first:pt-0 last:pb-0">
             <span
-                className={`grid size-6 shrink-0 place-items-center rounded-full text-xs ${done ? "bg-green-600 text-white" : "border border-neutral-300"}`}
+                className={`grid size-6 shrink-0 place-items-center rounded-full text-xs ${done ? "bg-green-600 text-white" : "border border-neutral-300"} ${done === null ? "border-dashed" : ""}`}
             >
                 {done ? "✓" : ""}
             </span>
             <div className="min-w-0 flex-1 space-y-3">
                 <div className="flex flex-wrap items-center gap-2">
                     <h3 className="font-medium">{title}</h3>
-                    {kind === "api" ? (
-                        <span className="rounded-full bg-sky-100 px-2 py-0.5 text-sky-800 text-xs">
-                            API call · no user needed
-                        </span>
-                    ) : (
-                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-amber-800 text-xs">
-                            Hosted session · user signs in
-                        </span>
-                    )}
+                    <span className={`rounded-full px-2 py-0.5 text-xs ${STEP_KINDS[kind].className}`}>
+                        {STEP_KINDS[kind].label}
+                    </span>
                 </div>
                 <p>
                     <code className="text-neutral-500 text-xs">{endpoint}</code>

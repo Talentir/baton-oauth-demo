@@ -13,10 +13,12 @@ Live: https://baton.talentir.com
 | Step | Who | How |
 | --- | --- | --- |
 | KYB completed | The user, in a hosted session | `POST /api/v2/sessions` with `type: "kyb"`, then open the returned `url` |
+| First deposit | Sandbox: your app. Production: the customer, by bank transfer | Sandbox: `POST /api/v2/team/sandbox-deposit`. Production: the deposit instructions from `GET /api/v2/team/accounts` |
+| Allowance set (optional) | The team owner, in a hosted session | `POST /api/v2/sessions` with `type: "allowance"`. Needed only for automatic approval with `payouts:approve`. The API does not report it |
 | First payout created | Your app, no user needed | `POST /api/v2/payouts` |
 | Payout approved | The user, in a hosted session | `POST /api/v2/sessions` with `type: "payout_approval"`, then open the returned `url` |
 
-The demo reads progress from `GET /api/v2/team` (`kybStatus`) and `GET /api/v2/payouts` (`approvedAt`). Hosted sessions open in a popup, an iframe, or a full-page redirect. You choose at the top of the page.
+The demo reads progress from `GET /api/v2/team` (`kybStatus`), `GET /api/v2/team/accounts` (`balance`) and `GET /api/v2/payouts?tag=baton-demo` (`approvedAt`). Hosted sessions open in a popup, an iframe, or a full-page redirect. You choose at the top of the page.
 
 ## How it is built
 

@@ -26,6 +26,8 @@ export type Team = { id: string; name: string; kybStatus: string; missing: strin
 
 export type Payout = { id: string; status: string; amount: string; currency: string; approvedAt: string | null };
 
+export type Account = { currency: string; balance: { total: string; available: string } };
+
 const STORAGE_KEY = "baton";
 
 const EMPTY_CLIENT: Client = { clientId: "", clientSecret: "", accessToken: null };
