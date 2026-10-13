@@ -20,6 +20,9 @@ import {
 
 const POLL_INTERVAL_MS = 5000;
 
+// The team may already have other payouts. Only the ones this demo created count as progress.
+const PAYOUT_TAG = "baton-demo";
+
 type SessionRequest = { type: "kyb" } | { type: "payout_approval"; payoutIds: string[] };
 
 export function Demo() {
@@ -50,7 +53,7 @@ export function Demo() {
     });
     const payouts = useQuery({
         queryKey: ["payouts", environment, client.accessToken],
-        queryFn: () => api<{ data: Payout[] }>("GET", "/payouts"),
+        queryFn: () => api<{ data: Payout[] }>("GET", `/payouts?tag=${PAYOUT_TAG}`),
         enabled: client.accessToken !== null,
         refetchInterval: POLL_INTERVAL_MS,
     });
@@ -78,6 +81,7 @@ export function Demo() {
                 amount: "10.00",
                 currency: "EUR",
                 recipient: { type: "email", email },
+                tags: [PAYOUT_TAG],
             }),
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ["payouts"] }),
     });
