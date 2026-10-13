@@ -33,11 +33,13 @@ export function Demo() {
     const queryClient = useQueryClient();
     const [state, setState] = useState(loadState);
     const [frameUrl, setFrameUrl] = useState<string | null>(null);
+    const [isEditingClient, setIsEditingClient] = useState(false);
 
     const { environment, sessionMode } = state;
     const client = state.clients[environment];
     const talentirOrigin = ENVIRONMENTS[environment];
     const isSandbox = environment === "sandbox";
+    const isClientSet = client.clientId !== "" && client.clientSecret !== "";
 
     const update = (next: DemoState) => {
         saveState(next);
@@ -202,34 +204,57 @@ export function Demo() {
             </div>
 
             <Card title="1. Create an OAuth client">
-                <p>
-                    Open{" "}
-                    <a
-                        className="underline"
-                        href={`${talentirOrigin}/dashboard/settings`}
-                        rel="noopener"
-                        target="_blank"
+                {isClientSet && !isEditingClient ? (
+                    <div className="flex items-center justify-between gap-4">
+                        <p className="min-w-0 truncate">
+                            Client ID <code className="text-neutral-500">{client.clientId}</code>
+                        </p>
+                        <Button onClick={() => setIsEditingClient(true)} variant="secondary">
+                            Edit
+                        </Button>
+                    </div>
+                ) : (
+                    <form
+                        className="space-y-4"
+                        key={`${environment}:${client.clientId}`}
+                        onSubmit={(event) => {
+                            event.preventDefault();
+                            const form = new FormData(event.currentTarget);
+
+                            updateClient({
+                                clientId: String(form.get("clientId")).trim(),
+                                clientSecret: String(form.get("clientSecret")).trim(),
+                            });
+                            setIsEditingClient(false);
+                        }}
                     >
-                        {new URL(talentirOrigin).host}/dashboard/settings
-                    </a>
-                    , expand <b>Advanced</b>, and create an OAuth client with this redirect URL:
-                </p>
-                <CopyField value={redirectUri()} />
-                <TextField
-                    label="Client ID"
-                    onChange={(clientId) => updateClient({ clientId })}
-                    value={client.clientId}
-                />
-                <TextField
-                    label="Client secret"
-                    onChange={(clientSecret) => updateClient({ clientSecret })}
-                    type="password"
-                    value={client.clientSecret}
-                />
-                <p className="text-neutral-500 text-xs">
-                    Demo only: this page keeps the secret and the access token in localStorage. A real platform keeps
-                    both on its server.
-                </p>
+                        <p>
+                            Open{" "}
+                            <a
+                                className="underline"
+                                href={`${talentirOrigin}/dashboard/settings`}
+                                rel="noopener"
+                                target="_blank"
+                            >
+                                {new URL(talentirOrigin).host}/dashboard/settings
+                            </a>
+                            , expand <b>Advanced</b>, and create an OAuth client with this redirect URL:
+                        </p>
+                        <CopyField value={redirectUri()} />
+                        <TextField defaultValue={client.clientId} label="Client ID" name="clientId" />
+                        <TextField
+                            defaultValue={client.clientSecret}
+                            label="Client secret"
+                            name="clientSecret"
+                            type="password"
+                        />
+                        <p className="text-neutral-500 text-xs">
+                            Demo only: this page keeps the secret and the access token in localStorage. A real platform
+                            keeps both on its server.
+                        </p>
+                        <Button type="submit">Save client</Button>
+                    </form>
+                )}
             </Card>
 
             <Card title="2. Connect a Talentir account">
@@ -241,12 +266,22 @@ export function Demo() {
                     <p>Talentir asks the user to sign in, pick or create a team, and allow access.</p>
                 )}
                 <ErrorText error={team.error ?? connect.error} />
-                <Button
-                    disabled={client.clientId === "" || client.clientSecret === "" || connect.isPending}
-                    onClick={() => connect.mutate()}
-                >
-                    {client.accessToken === null ? "Connect Talentir" : "Connect again"}
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                    <Button disabled={!isClientSet || connect.isPending} onClick={() => connect.mutate()}>
+                        {client.accessToken === null ? "Connect Talentir" : "Connect again"}
+                    </Button>
+                    {client.accessToken !== null && (
+                        <Button onClick={() => updateClient({ accessToken: null })} variant="secondary">
+                            Disconnect
+                        </Button>
+                    )}
+                </div>
+                {client.accessToken !== null && (
+                    <Hint>
+                        Disconnect only forgets the token in this browser. To revoke access, the user removes the app
+                        under Connected Apps in the Talentir settings.
+                    </Hint>
+                )}
             </Card>
 
             {team.data && (
@@ -503,36 +538,30 @@ function Toggle<T extends string>({
     );
 }
 
-function Button({ type = "button", ...props }: React.ComponentProps<"button">) {
+const BUTTON_VARIANTS = {
+    primary: "bg-neutral-900 text-white hover:bg-neutral-700",
+    secondary: "border border-neutral-300 hover:bg-neutral-100",
+};
+
+function Button({
+    type = "button",
+    variant = "primary",
+    ...props
+}: React.ComponentProps<"button"> & { variant?: keyof typeof BUTTON_VARIANTS }) {
     return (
         <button
-            className="rounded-full bg-neutral-900 px-4 py-2 font-medium text-white hover:bg-neutral-700 disabled:opacity-40"
+            className={`rounded-full px-4 py-2 font-medium disabled:opacity-40 ${BUTTON_VARIANTS[variant]}`}
             type={type}
             {...props}
         />
     );
 }
 
-function TextField({
-    label,
-    value,
-    onChange,
-    type = "text",
-}: {
-    label: string;
-    value: string;
-    onChange: (value: string) => void;
-    type?: "text" | "password";
-}) {
+function TextField({ label, ...props }: { label: string } & React.ComponentProps<"input">) {
     return (
         <label className="block space-y-1">
             <span className="text-neutral-500">{label}</span>
-            <input
-                className="w-full rounded-lg border border-neutral-300 px-3 py-2 font-mono"
-                onChange={(event) => onChange(event.target.value.trim())}
-                type={type}
-                value={value}
-            />
+            <input className="w-full rounded-lg border border-neutral-300 px-3 py-2 font-mono" required {...props} />
         </label>
     );
 }
