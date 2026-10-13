@@ -29,6 +29,7 @@ export type Payout = { id: string; status: string; amount: string; currency: str
 export type Account = {
     currency: string;
     balance: { total: string; available: string };
+    allowance: { limit: string; used: string; resetsAt: string | null } | null;
     depositInstructions: { type: string; iban?: string | null; bic?: string; reference: string | null }[];
 };
 

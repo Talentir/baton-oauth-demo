@@ -156,6 +156,8 @@ export function Demo() {
 
     const accountList = accounts.data?.data ?? [];
     const fundedAccounts = accountList.filter((account) => Number(account.balance.total) > 0);
+    // `!= null`: until Talentir ships the field, an account has no `allowance` at all.
+    const allowanceAccounts = accountList.filter((account) => account.allowance != null);
     const eurIban = accountList
         .find((account) => account.currency === "EUR")
         ?.depositInstructions.find((instruction) => instruction.iban != null);
@@ -353,16 +355,23 @@ export function Demo() {
                         </Step>
 
                         <Step
-                            done={null}
-                            endpoint='POST /api/v2/sessions { "type": "allowance" }'
+                            done={allowanceAccounts.length > 0}
+                            endpoint='POST /api/v2/sessions { "type": "allowance" } · GET /api/v2/team/accounts'
                             kind="allowance"
                             title="Allowance set (optional)"
                         >
                             <p>
                                 The team owner sets a daily spending limit for automatic approval. You need it only if
-                                Talentir gave your client the restricted <code>payouts:approve</code> scope. The API
-                                does not report the allowance, so this step has no check.
+                                Talentir gave your client the restricted <code>payouts:approve</code> scope.
                             </p>
+                            {allowanceAccounts.map((account) => (
+                                <p key={account.currency}>
+                                    <code>
+                                        {account.currency}: {account.allowance?.limit} per day,{" "}
+                                        {account.allowance?.used} used
+                                    </code>
+                                </p>
+                            ))}
                             <Button
                                 disabled={allowanceSession.isPending}
                                 onClick={() => allowanceSession.mutate({ type: "allowance" })}
@@ -483,7 +492,7 @@ function Step({
     title,
     children,
 }: {
-    done: boolean | null;
+    done: boolean;
     endpoint: string;
     kind: keyof typeof STEP_KINDS;
     title: string;
@@ -492,7 +501,7 @@ function Step({
     return (
         <li className="flex gap-4 py-5 first:pt-0 last:pb-0">
             <span
-                className={`grid size-6 shrink-0 place-items-center rounded-full text-xs ${done ? "bg-green-600 text-white" : "border border-neutral-300"} ${done === null ? "border-dashed" : ""}`}
+                className={`grid size-6 shrink-0 place-items-center rounded-full text-xs ${done ? "bg-green-600 text-white" : "border border-neutral-300"}`}
             >
                 {done ? "✓" : ""}
             </span>
