@@ -156,8 +156,9 @@ export function Demo() {
 
     const accountList = accounts.data?.data ?? [];
     const fundedAccounts = accountList.filter((account) => Number(account.balance.total) > 0);
-    // `!= null`: until Talentir ships the field, an account has no `allowance` at all.
-    const allowanceAccounts = accountList.filter((account) => account.allowance != null);
+    const payoutAllowance = accountList.find(
+        (account) => account.currency === team.data?.defaultPayoutCurrency,
+    )?.allowance;
     const eurIban = accountList
         .find((account) => account.currency === "EUR")
         ?.depositInstructions.find((instruction) => instruction.iban != null);
@@ -355,20 +356,23 @@ export function Demo() {
                         </Step>
 
                         <Step
-                            done={allowanceAccounts.length > 0}
+                            done={payoutAllowance != null}
                             endpoint='POST /api/v2/sessions { "type": "allowance" } · GET /api/v2/team/accounts'
                             kind="allowance"
                             title="Allowance set"
                         >
-                            <p>The team owner sets a daily spending limit.</p>
-                            {allowanceAccounts.map((account) => (
-                                <p key={account.currency}>
+                            <p>
+                                The team owner sets a daily spending limit. Approval checks the account in the
+                                team&apos;s <code>defaultPayoutCurrency</code>.
+                            </p>
+                            {payoutAllowance && (
+                                <p>
                                     <code>
-                                        {account.currency}: {account.allowance?.limit} per day,{" "}
-                                        {account.allowance?.used} used
+                                        {team.data.defaultPayoutCurrency}: {payoutAllowance.limit} per day,{" "}
+                                        {payoutAllowance.used} used
                                     </code>
                                 </p>
-                            ))}
+                            )}
                             <Button
                                 disabled={allowanceSession.isPending}
                                 onClick={() => allowanceSession.mutate({ type: "allowance" })}

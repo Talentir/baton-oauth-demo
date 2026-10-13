@@ -22,7 +22,7 @@ export type DemoState = {
     pendingAuthorization: { state: string; codeVerifier: string } | null;
 };
 
-export type Team = { id: string; name: string; kybStatus: string; missing: string[] };
+export type Team = { id: string; name: string; kybStatus: string; missing: string[]; defaultPayoutCurrency: string };
 
 export type Payout = { id: string; status: string; amount: string; currency: string; approvedAt: string | null };
 
