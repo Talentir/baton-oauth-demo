@@ -26,7 +26,11 @@ export type Team = { id: string; name: string; kybStatus: string; missing: strin
 
 export type Payout = { id: string; status: string; amount: string; currency: string; approvedAt: string | null };
 
-export type Account = { currency: string; balance: { total: string; available: string } };
+export type Account = {
+    currency: string;
+    balance: { total: string; available: string };
+    depositInstructions: { type: string; iban?: string | null; bic?: string; reference: string | null }[];
+};
 
 const STORAGE_KEY = "baton";
 

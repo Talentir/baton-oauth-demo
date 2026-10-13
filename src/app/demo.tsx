@@ -152,7 +152,12 @@ export function Demo() {
     const allowanceSession = useMutation({ mutationFn: openSession });
     const approvalSession = useMutation({ mutationFn: openSession });
 
-    const fundedAccounts = (accounts.data?.data ?? []).filter((account) => Number(account.balance.total) > 0);
+    const accountList = accounts.data?.data ?? [];
+    const fundedAccounts = accountList.filter((account) => Number(account.balance.total) > 0);
+    const eurIban = accountList
+        .find((account) => account.currency === "EUR")
+        ?.depositInstructions.find((instruction) => instruction.iban != null);
+
     const payoutList = payouts.data?.data ?? [];
     const latestPayout = payoutList.at(0);
     const createdPayoutIds = payoutList.filter((payout) => payout.status === "created").map((payout) => payout.id);
@@ -274,7 +279,11 @@ export function Demo() {
 
                         <Step
                             done={fundedAccounts.length > 0}
-                            endpoint={isSandbox ? "POST /api/v2/team/sandbox-deposit" : "GET /api/v2/team/accounts"}
+                            endpoint={
+                                isSandbox
+                                    ? "POST /api/v2/team/sandbox-deposit · GET /api/v2/team/accounts"
+                                    : "GET /api/v2/team/accounts"
+                            }
                             kind={isSandbox ? "api" : "bank"}
                             title="First deposit"
                         >
@@ -282,6 +291,16 @@ export function Demo() {
                                 <p>The sandbox has no bank, so your app adds test money with one API call.</p>
                             ) : (
                                 <p>The customer sends a bank transfer to the deposit instructions of their account.</p>
+                            )}
+                            {eurIban ? (
+                                <p>
+                                    <code>
+                                        EUR IBAN {eurIban.iban} · BIC {eurIban.bic}
+                                        {eurIban.reference && ` · Reference ${eurIban.reference}`}
+                                    </code>
+                                </p>
+                            ) : (
+                                <Hint>No EUR IBAN yet. Talentir lists the bank details after KYB.</Hint>
                             )}
                             {fundedAccounts.map((account) => (
                                 <p key={account.currency}>
